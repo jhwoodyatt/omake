@@ -55,8 +55,8 @@ value caml_term_size(value arg)
         if (! GetConsoleScreenBufferInfo(fd, &ConsoleInfo))
             failwith("lm_termsize.c: caml_term_size: GetConsoleScreenBufferInfo failed");
 
-        Field(buf, 0) = Val_int(ConsoleInfo.dwSize.Y);
-        Field(buf, 1) = Val_int(ConsoleInfo.dwSize.X);
+        caml_initialize_field(buf, 0, Val_int(ConsoleInfo.dwSize.Y));
+        caml_initialize_field(buf, 1, Val_int(ConsoleInfo.dwSize.X));
     }
 #else /* WIN32 */
 #ifdef TIOCGWINSZ
@@ -66,15 +66,15 @@ value caml_term_size(value arg)
 
         if(ioctl(fd, TIOCGWINSZ, &ws) < 0)
             failwith("lm_termsize.c: caml_term_size: not a terminal");
-    
+
         /* Return the pair of numbers */
-        Field(buf, 0) = Val_int(ws.ws_row);
-        Field(buf, 1) = Val_int(ws.ws_col);
+        caml_initialize_field(buf, 0, Val_int(ws.ws_row));
+        caml_initialize_field(buf, 1, Val_int(ws.ws_col));
     }
 #else /* TIOCGWINSZ */
    /* Assume that the terminal is 80 by 25 */
-   Field(buf, 0) = Val_int( 25 );
-   Field(buf, 1) = Val_int( 80 );
+    caml_initialize_field(buf, 0, Val_int( 25 ));
+    caml_initialize_field(buf, 1, Val_int( 80 ));
 #endif /* TIOCGWINSZ */
 #endif /* WIN32 */
 

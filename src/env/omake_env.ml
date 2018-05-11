@@ -352,7 +352,7 @@ let venv_synch venv f =
        match globals.venv_parent with
          | Some(pglobals, pversion) ->
              venv_protect
-               pglobals 
+               pglobals
                (fun () ->
                   if pversion = pglobals.venv_version then
                     f globals (Some pglobals)
@@ -805,7 +805,7 @@ let squeeze_phony =
       other
 
 
-let venv_find_target_is_buildable_exn venv target_dir file node_kind = 
+let venv_find_target_is_buildable_exn venv target_dir file node_kind =
   let node_kind = squeeze_phony node_kind in
   let g = venv_globals venv in
   let ikey = TargetElem.intern (file,node_kind) in
@@ -1067,7 +1067,7 @@ end
 
 module Static : InternalStaticSig =
 struct
-  
+
    (*
     * A .omc file.
     *)
@@ -2305,7 +2305,7 @@ let venv_get_pervasives venv node =
          _
        } = inner
    in
-   let { 
+   let {
          venv_pervasives_obj  = obj;
          _
        } = globals
@@ -2335,7 +2335,7 @@ let venv_get_pervasives venv node =
 let venv_fork venv =
    let inner = venv.venv_inner in
    let globals = inner.venv_globals in
-   let globals = { globals with 
+   let globals = { globals with
                    venv_parent = Some(globals, globals.venv_version);
                    venv_mutex = Lm_thread.Mutex.create "venv_globals";
                    venv_version = 0;
@@ -2388,7 +2388,7 @@ let venv_include_scope venv mode =
         } = venv
     in
     let vars = Lm_symbol.SymbolTable.mapi (fun v _ -> Omake_ir.VarThis (loc, v)) this in
-    let vars = Lm_symbol.SymbolTable.fold 
+    let vars = Lm_symbol.SymbolTable.fold
         (fun vars v _ -> Lm_symbol.SymbolTable.add vars v (Omake_ir.VarGlobal (loc, v))) vars dynamic in
     vars
 
@@ -2927,9 +2927,9 @@ let venv_find_implicit_rules_inner venv target =
             let commands = make_command_info venv source_args irule.irule_values commands in
             let effects =
               List.fold_left (fun effects pattern ->
-                let effect = Lm_wild.subst_in subst pattern in
-                let effect = venv_intern_rule_target venv multiple (TargetString effect) in
-                Omake_node.NodeSet.add effects effect) Omake_node.NodeSet.empty irule.irule_patterns
+                let eff = Lm_wild.subst_in subst pattern in
+                let eff = venv_intern_rule_target venv multiple (TargetString eff) in
+                Omake_node.NodeSet.add effects eff) Omake_node.NodeSet.empty irule.irule_patterns
             in
             let erule =
               { rule_loc         = irule.irule_loc;
@@ -2980,7 +2980,7 @@ let venv_add_orders venv loc targets =
       let name =
         match target with
         | Omake_value_type.TargetNode _ ->
-          raise (Omake_value_type.OmakeException 
+          raise (Omake_value_type.OmakeException
                    (Pos.loc_exp_pos loc, StringTargetError (".ORDER should be a name", target)))
         | TargetString s ->
           s

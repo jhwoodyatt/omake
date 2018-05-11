@@ -79,8 +79,8 @@ let build_failure_target = Omake_node.Node.create_phony_global build_failure
  * Check if a command list contains value dependencies.
  *)
 let commands_have_value_dependencies commands =
-  List.exists 
-    (fun (command : Omake_env.command_info) -> command.command_values <> []) 
+  List.exists
+    (fun (command : Omake_env.command_info) -> command.command_values <> [])
     commands
 
 
@@ -138,7 +138,7 @@ let process_changes is_node_relevant process_node venv cwd cache (event : Lm_not
   in
   match event  with
     { notify_code = DirectoryChanged; notify_name = name } ->
-    List.fold_left (fun changed name -> process_node name || changed) false 
+    List.fold_left (fun changed name -> process_node name || changed) false
       (Lm_unix_util.list_directory name)
   | { notify_code = (Changed | Created); notify_name = name } ->
     process_node name
@@ -206,13 +206,13 @@ let all_scanner_dependencies =
  * Print the dependency information.
  *)
 let rec pp_print_dependencies_aux show_all env buf (command : Omake_build_type.command) =
-  match command with 
+  match command with
     { command_target       = target;
       command_effects      = effects;
       command_scanner_deps = scanner_deps;
       command_static_deps  = static_deps;
       command_build_deps   = build_deps;
-      _} -> 
+      _} ->
     let inverse = find_parents env target in
     let options = Omake_env.venv_options env.env_venv in
     let total, build_deps, scanner_deps =
@@ -245,8 +245,8 @@ let pp_print_dependencies =
 (*
  * Reclassify the commands.
  *)
-let reclassify_command 
-    (env : Omake_build_type.t) (command : Omake_build_type.command) 
+let reclassify_command
+    (env : Omake_build_type.t) (command : Omake_build_type.command)
     (state : Omake_build_type.command_state) =
   (* Unlink the node from its current list *)
   let pred = command.command_pred in
@@ -491,7 +491,7 @@ let build_any_command (env : Omake_build_type.t)
   let lock_deps = Omake_node.NodeSet.union lock_deps locks in
   let static_deps = Omake_node.NodeSet.union static_deps sources in
   let scanner_deps = Omake_node.NodeSet.union scanner_deps scanners in
-  let implicit_lock_deps, implicit_static_deps, implicit_scanner_deps, implicit_values = 
+  let implicit_lock_deps, implicit_static_deps, implicit_scanner_deps, implicit_values =
     Omake_env.venv_find_implicit_deps venv target in
   let lock_deps = Omake_node.NodeSet.union lock_deps implicit_lock_deps in
   let static_deps = Omake_node.NodeSet.union static_deps implicit_static_deps in
@@ -580,11 +580,11 @@ let build_explicit_command
 
   (* Check that all the effects have the same environment *)
   let bogus =
-    Omake_node.NodeSet.fold (fun bogus effect ->
+    Omake_node.NodeSet.fold (fun bogus eff ->
       try
-        let erule = Omake_node.NodeTable.find env.env_explicit_targets effect in
+        let erule = Omake_node.NodeTable.find env.env_explicit_targets eff in
         if erule.rule_env != venv then
-          Omake_node.NodeSet.add bogus effect
+          Omake_node.NodeSet.add bogus eff
         else
           bogus
       with
@@ -598,9 +598,9 @@ let build_explicit_command
       in
       let rec pp_print_bogus_set buf bogus =
         if not (Omake_node.NodeSet.is_empty bogus) then begin
-          let effect = Omake_node.NodeSet.choose bogus in
-          pp_print_target_loc buf (effect, (Omake_node.NodeTable.find env.env_explicit_targets effect).rule_loc);
-          pp_print_bogus_set buf (Omake_node.NodeSet.remove bogus effect)
+          let eff = Omake_node.NodeSet.choose bogus in
+          pp_print_target_loc buf (eff, (Omake_node.NodeTable.find env.env_explicit_targets eff).rule_loc);
+          pp_print_bogus_set buf (Omake_node.NodeSet.remove bogus eff)
         end
       in
       Format.eprintf "@[<v 3>*** omake:@ These file are targeted separately, but appear as effects of a single rule.@ This is likely to lead to unpredictable behavior.@ @[<v 3>targets:%a%a@]@]@." (**)
@@ -613,7 +613,7 @@ let build_explicit_command
  * Build a command from a set of implicit rules.
  * We choose the first rule where the dependencies can be satisfied.
  *)
-let build_implicit_command 
+let build_implicit_command
     (env : Omake_build_type.t) pos loc target venv =
   let pos = Pos.string_pos "build_implicit_command" pos in
   match Omake_target.venv_find_buildable_implicit_rule env.env_cache venv pos target with
@@ -639,7 +639,7 @@ let build_implicit_command
  *)
 let build_explicit_target env pos _ target erule =
   let pos = Pos.string_pos "build_explicit_target" pos in
-  match Omake_rule.expand_rule erule with 
+  match Omake_rule.expand_rule erule with
     { rule_loc         = loc;
       rule_env         = venv;
       rule_effects     = effects;
@@ -648,7 +648,7 @@ let build_explicit_target env pos _ target erule =
       rule_scanners    = scanners;
       rule_commands    = commands;
       _
-    } -> 
+    } ->
     if commands = [] then
       build_implicit_command env pos loc target venv
     else
@@ -657,7 +657,7 @@ let build_explicit_target env pos _ target erule =
 (*
  * Create a new command for the target.
  *)
-let build_command_non_escaped 
+let build_command_non_escaped
     (env : Omake_build_type.t) pos loc target =
   let pos = Pos.string_pos "build_command_non_escaped" pos in
 
@@ -685,7 +685,7 @@ let build_command_non_escaped
  * Create a new command for the scanner target.  The difference is
  * that the scanner uses the dependent environment unless it is explicit.
  *)
-let build_scanner_command 
+let build_scanner_command
     (env : Omake_build_type.t) pos loc target venv =
   let pos = Pos.string_pos "build_scanner_command" pos in
   (*
@@ -767,8 +767,8 @@ let start_or_build_effects env pos loc target effects =
   let pos = Pos.string_pos "start_or_build_effects" pos in
   let step effects =
     start_or_build_commands env pos loc target effects;
-    Omake_node.NodeSet.fold (fun (changed, effects) effect ->
-      let command = find_command env effect in
+    Omake_node.NodeSet.fold (fun (changed, effects) eff ->
+      let command = find_command env eff in
       let effects' = command.command_effects in
       if effects' == effects then
         changed, effects
@@ -802,8 +802,8 @@ let build_command env pos loc target =
  *)
 let command_set_blocked (env : Omake_build_type.t)
     (command : Omake_build_type.command) deps =
-  match command with 
-    { command_target = target ; _} -> 
+  match command with
+    { command_target = target ; _} ->
 
     let inverse =
       Omake_node.NodeSet.fold (fun inverse dep ->
@@ -830,7 +830,7 @@ let command_set_build_deps env command deps =
 (*
  * Check if the command overlaps with a running process.
  *)
-let command_conflicts_with_running (env : Omake_build_type.t) 
+let command_conflicts_with_running (env : Omake_build_type.t)
     (command : Omake_build_type.command) =
   let locks = command.command_locks in
   Omake_build_util.command_exists env CommandRunningTag (fun command ->
@@ -851,8 +851,8 @@ let command_succeeded (command : Omake_build_type.command) =
  *)
 let command_is_blocked (env : Omake_build_type.t)
     (command : Omake_build_type.command)  =
-  match command with 
-    { command_blocked = blocked ; _} -> 
+  match command with
+    { command_blocked = blocked ; _} ->
     if blocked = [] then
       false
     else
@@ -873,19 +873,19 @@ let command_is_blocked (env : Omake_build_type.t)
 (*
  * Check if all effects that are not the target have been scanned.
  *)
-let command_effects_are_scanned 
+let command_effects_are_scanned
     (env : Omake_build_type.t)
     (command : Omake_build_type.command) =
-  match command with 
+  match command with
     { command_target = target;
       command_effects = effects;
       _
-    } -> 
-    Omake_node.NodeSet.for_all (fun effect ->
-        if Omake_node.Node.equal effect target then
+    } ->
+    Omake_node.NodeSet.for_all (fun eff ->
+        if Omake_node.Node.equal eff target then
           true
         else
-          match (find_command env effect).command_state with
+          match (find_command env eff).command_state with
           | CommandScannedPending
           | CommandSucceeded _ ->
             true
@@ -895,7 +895,7 @@ let command_effects_are_scanned
 (*
  * Reclassify dependent rules.
  *)
-let enable_parents 
+let enable_parents
     (env : Omake_build_type.t)
     (command : Omake_build_type.command) =
   let enable_parent _ command =
@@ -982,12 +982,12 @@ let abort_commands env targets code =
  *)
 let finish_scanned (env : Omake_build_type.t)
     (command : Omake_build_type.command) =
-  match command with 
+  match command with
     { command_loc          = loc;
       command_target       = target;
       command_effects      = effects;
       _
-    } -> 
+    } ->
     let pos = Pos.loc_exp_pos loc in
 
     (* Get the command for each of the effects *)
@@ -998,7 +998,7 @@ let finish_scanned (env : Omake_build_type.t)
 
     (* Find all the scanner results *)
     let scanner_deps =
-      List.fold_left 
+      List.fold_left
         (fun scanner_deps (command : Omake_build_type.command) ->
           Omake_node.NodeSet.union scanner_deps command.command_scanner_deps)
         Omake_node.NodeSet.empty effects_commands
@@ -1022,11 +1022,11 @@ let finish_scanned (env : Omake_build_type.t)
     (* Now collect all the deps *)
     let deps =
       List.fold_left (fun deps (command : Omake_build_type.command) ->
-        match command with 
+        match command with
           { command_target = target;
             command_static_deps = static_deps;
             command_scanner_deps = scanner_deps;
-            _} -> 
+            _} ->
 
           let deps = Omake_node.NodeSet.union deps static_deps in
           let deps = Omake_node.NodeSet.union deps scanner_deps in
@@ -1065,7 +1065,7 @@ let finish_scanned (env : Omake_build_type.t)
  *)
 let finish_scanner env (command : Omake_build_type.command) scanned_deps =
   match command with
-    {command_target = target; _} -> 
+    {command_target = target; _} ->
     if Lm_debug.debug Omake_env.debug_scanner then
       Format.eprintf "@[<hv 3>finish_scanner %a:%a@]@." (**)
         Omake_node.pp_print_node target
@@ -1092,11 +1092,11 @@ let finish_scanner env (command : Omake_build_type.command) scanned_deps =
  *    2. If the .SCANNER body depends non-trivially on the scanner
  *       dependencies $&.
  *)
-let save_and_finish_scanner_results 
-    (env : Omake_build_type.t) 
+let save_and_finish_scanner_results
+    (env : Omake_build_type.t)
     (command : Omake_build_type.command) scanned_deps =
   (* Add the run to the cache *)
-  match command with 
+  match command with
     { command_loc            = loc;
       command_venv           = venv;
       command_target         = target;
@@ -1104,7 +1104,7 @@ let save_and_finish_scanner_results
       command_locks          = locks;
       command_build_deps     = build_deps;
       _
-    } -> 
+    } ->
     (* Save in cache *)
     let cache = env.env_cache in
     let targets = Omake_node.NodeSet.singleton target in
@@ -1137,14 +1137,14 @@ let save_and_finish_scanner_results
 (*
  * Add the run to the cache.
  *)
-let save_and_finish_scanner_success 
+let save_and_finish_scanner_success
     (env : Omake_build_type.t) (command : Omake_build_type.command) filename =
-  match command with 
+  match command with
     { command_loc = loc;
       command_venv = venv;
       command_target  = target;
       _
-    } -> 
+    } ->
 
 
     (*
@@ -1217,7 +1217,7 @@ let save_and_finish_scanner_postprocess
            emulate the mode where we both write to the temp file and write
            to stderr. AFAIK this mode isn't used.
          *)
-        let tee = 
+        let tee =
           Omake_exec_util.tee_create (Omake_options.opt_divert venv_opts) in
         let stderr =
           match Omake_exec_util.tee_file_descr tee with
@@ -1256,18 +1256,18 @@ let s_command cmd =
     | Omake_command_type.CommandEval _ -> "CommandEval"
     | Omake_command_type.CommandPipe _ -> "CommandPipe"
     | Omake_command_type.CommandValues _ -> "CommandValues"
-                                              
+
 (*
  * Run the command.
  *)
-let execute_scanner (env : Omake_build_type.t) 
+let execute_scanner (env : Omake_build_type.t)
     (command : Omake_build_type.command) =
-  match command with 
+  match command with
     { command_target = target;
       command_loc = loc;
       command_venv = venv;
       _
-    } -> 
+    } ->
     let pos = Pos.string_pos "execute_scanner" (Pos.loc_exp_pos loc) in
     let scanner, _ = command_lines command in
 
@@ -1294,7 +1294,7 @@ let execute_scanner (env : Omake_build_type.t)
           ] when Sys.os_type <> "Win32" ->
             scanner_values @
               [ { (List.hd scanner_rest) with
-                  command_inst = Omake_command_type.CommandPipe cmd1 
+                  command_inst = Omake_command_type.CommandPipe cmd1
                 }
               ],
             Some(loc, cmd2)
@@ -1327,7 +1327,7 @@ let execute_scanner (env : Omake_build_type.t)
     let shell = Omake_rule.eval_shell venv pos in
     set_tee env command tee;
     env.env_scan_exec_count <- succ env.env_scan_exec_count;
-    match Omake_exec.Exec.spawn env.env_exec shell 
+    match Omake_exec.Exec.spawn env.env_exec shell
         (Omake_env.venv_options venv) copy_stdout handle_out copy_stderr "scan" target eff_scanner with
       ProcessFailed ->
       (* The fork failed *)
@@ -1342,10 +1342,10 @@ let execute_scanner (env : Omake_build_type.t)
  * Check with the cache to see if this command is already
  * up-to-date.
  *)
-let start_scanner 
+let start_scanner
     (env : Omake_build_type.t)
     (command : Omake_build_type.command) =
-  match command with 
+  match command with
     { command_venv           = venv;
       command_loc            = loc;
       command_target         = target;
@@ -1419,8 +1419,8 @@ let finish_rule_success env command =
  * A command remains failed.
  *)
 let finish_rule_failed env (command : Omake_build_type.command) code =
-  match command with 
-    { command_effects = effects ; _} -> 
+  match command with
+    { command_effects = effects ; _} ->
     abort_commands env effects code
 
 (*
@@ -1432,33 +1432,33 @@ let hexify_digest = function
   | None ->
     "none"
 
-let save_and_finish_rule_success 
+let save_and_finish_rule_success
     (env : Omake_build_type.t)
     (command : Omake_build_type.command) =
   (* Add the run to the cache *)
-  match command with 
+  match command with
     { command_loc        = loc;
       command_target     = target;
       command_effects    = effects;
       command_locks      = locks;
       command_build_deps = build_deps;
       _
-    } ->  
+    } ->
     let cache = env.env_cache in
     let _, commands_digest = command_lines command in
 
     (* Collect the effects that are not phony, check that they were created *)
     let effects =
-      Omake_node.NodeSet.fold (fun effects effect ->
-        Omake_cache.reset cache effect;
-        let effect_exists = Omake_cache.exists cache effect in
-        if Omake_node.Node.is_phony effect then
+      Omake_node.NodeSet.fold (fun effects eff ->
+        Omake_cache.reset cache eff;
+        let effect_exists = Omake_cache.exists cache eff in
+        if Omake_node.Node.is_phony eff then
           effects
         else if not effect_exists then begin
           abort_command env command Omake_state.exn_error_code;
-          raise (Omake_value_type.OmakeException (Pos.loc_exp_pos loc, StringNodeError ("rule failed to build its target", effect)))
+          raise (Omake_value_type.OmakeException (Pos.loc_exp_pos loc, StringNodeError ("rule failed to build its target", eff)))
         end else
-          Omake_node.NodeSet.add effects effect) Omake_node.NodeSet.empty effects
+          Omake_node.NodeSet.add effects eff) Omake_node.NodeSet.empty effects
     in
 
     (* Re-stat the locks *)
@@ -1488,16 +1488,16 @@ let save_and_finish_rule_success
 (*
  * A command failed.
  *)
-let save_and_finish_rule_failed 
+let save_and_finish_rule_failed
     (env : Omake_build_type.t)
     (command : Omake_build_type.command) code =
   (* Add the run to the cache *)
-  match command with 
+  match command with
     { command_target     = target;
       command_effects    = effects;
       command_build_deps = build_deps;
       _
-    } -> 
+    } ->
     let cache = env.env_cache in
     let _, commands_digest = command_lines command in
     Omake_build_tee.env_close_failed_tee env command;
@@ -1508,13 +1508,13 @@ let save_and_finish_rule_failed
  * Run the command.
  *)
 let run_rule (env : Omake_build_type.t) (command : Omake_build_type.command) =
-  match command with 
+  match command with
     { command_loc     = loc;
       command_target  = target;
 
       command_venv    = venv;
       _
-    } -> 
+    } ->
 
     let pos = Pos.string_pos "run_rule" (Pos.loc_exp_pos loc) in
     let commands, _ = command_lines command in
@@ -1528,7 +1528,7 @@ let run_rule (env : Omake_build_type.t) (command : Omake_build_type.command) =
     let copy_stderr = Omake_exec_util.tee_stderr tee divert_only in
     set_tee env command tee;
     env.env_rule_exec_count <- succ env.env_rule_exec_count;
-    match Omake_exec.Exec.spawn env.env_exec shell 
+    match Omake_exec.Exec.spawn env.env_exec shell
         (Omake_env.venv_options venv) copy_stdout copy_stdout copy_stderr "build" target commands with
       ProcessFailed ->
       (* The fork failed *)
@@ -1543,10 +1543,10 @@ let run_rule (env : Omake_build_type.t) (command : Omake_build_type.command) =
  * Check with the cache to see if this command is already
  * up-to-date.
  *)
-let execute_rule 
+let execute_rule
     (env : Omake_build_type.t)
     (command : Omake_build_type.command) =
-  match command with 
+  match command with
     { command_loc          = loc;
 
       command_target       = target;
@@ -1555,7 +1555,7 @@ let execute_rule
       command_build_deps   = build_deps;
       command_venv         = venv;
       _
-    } -> 
+    } ->
     let pos = Pos.string_pos "execute_rule" (Pos.loc_exp_pos loc) in
     let options = Omake_env.venv_options venv in
     let commands, commands_digest =
@@ -1660,12 +1660,12 @@ let empty_env venv cache exec ~summary deps targets dirs includes : Omake_build_
   }
 
 let create exec venv cache summary =
-  match Omake_env.venv_explicit_rules venv with 
+  match Omake_env.venv_explicit_rules venv with
     { explicit_targets     = target_table;
       explicit_directories = dir_table;
       explicit_deps        = dep_table;
       _
-    }  -> 
+    }  ->
 
     let includes = Omake_env.venv_files venv in
     let includes = Omake_cache.stat_set cache includes in
@@ -1798,7 +1798,7 @@ let process_initial env =
                         command_scanner_deps = scanner_deps;
                         command_static_deps = static_deps;
                         _
-                      } -> 
+                      } ->
     let pos = Pos.string_pos "process_initial" (Pos.loc_exp_pos loc) in
     let _ =
       if Lm_debug.debug debug_build then
@@ -1940,8 +1940,8 @@ and invalidate_event_core env node =
     raise (Restart None)
   end else
     let nodes = if Omake_build_util.is_leaf_node env node then Omake_node.NodeSet.singleton node else Omake_node.NodeSet.empty in
-    let nodes = 
-      Omake_node.NodeSet.union nodes 
+    let nodes =
+      Omake_node.NodeSet.union nodes
         (find_parents env (Omake_node.Node.create_escape NodeOptional node)) in
     let nodes = Omake_node.NodeSet.union nodes (find_parents env (Omake_node.Node.create_escape NodeExists node)) in
     invalidate_ancestors env nodes
@@ -2056,7 +2056,7 @@ let create_env exec options cache targets =
   let () =
     if Omake_options.opt_print_status options then
       let now' = Unix.gettimeofday () in
-      Lm_printf.printf "*** omake: finished reading %ss (%a)@." Omake_state.makefile_name 
+      Lm_printf.printf "*** omake: finished reading %ss (%a)@." Omake_state.makefile_name
         Lm_unix_util.pp_time (now' -. now)
   in
   let env = create exec venv cache summary in
@@ -2110,18 +2110,18 @@ let load_osh venv options targets =
   let cache =
       try
         let inx = open_in_bin Omake_state.db_name in
-        Lm_unix_util.finally inx (Omake_cache.from_channel options ) close_in 
+        Lm_unix_util.finally inx (Omake_cache.from_channel options ) close_in
       with
       |  Unix.Unix_error _
-      |  End_of_file 
-      |  Sys_error _ 
+      |  End_of_file
+      |  Sys_error _
       |Failure _ -> Omake_cache.create ()
   in
   let venv = Omake_env.venv_add_cache venv cache in
 
   (* Add the targets *)
   let targets_value : Omake_value_type.t =
-    ValArray 
+    ValArray
       (List.map (fun v -> (ValData v : Omake_value_type.t )) targets) in
   let venv = Omake_env.venv_add_var venv Omake_var.targets_var targets_value in
 
@@ -2131,7 +2131,7 @@ let load_osh venv options targets =
     Pervasives.close_out outx;
     summary
   in
-  let summary_value : Omake_value_type.t = 
+  let summary_value : Omake_value_type.t =
     ValNode (Omake_env.venv_intern venv PhonyProhibited summary) in
   let venv = Omake_env.venv_add_var venv Omake_var.build_summary_var summary_value in
 
@@ -2149,7 +2149,7 @@ let load venv_opt options targets =
     load_omake options targets
 
 let rec main_loop env (progress : prompt_state) =
-  if Lm_debug.debug debug_build then 
+  if Lm_debug.debug debug_build then
     Omake_build_util.eprint_env env ;
   let progress : prompt_state =
     let flushed = Omake_exec_print.progress_flushed () in
@@ -2166,7 +2166,7 @@ let rec main_loop env (progress : prompt_state) =
         end else
           progress
       in
-      if flushed || will_save || now > progress.progress then 
+      if flushed || will_save || now > progress.progress then
         begin
         let total = Omake_node.NodeTable.cardinal env.env_commands - env.env_optional_count in
         Omake_exec_print.print_progress options env.env_succeeded_count total;
@@ -2181,7 +2181,7 @@ let rec main_loop env (progress : prompt_state) =
     process_initial env;
     main_loop env progress
   end
-  else if not (Omake_build_util.command_list_is_empty env CommandScannedTag) then 
+  else if not (Omake_build_util.command_list_is_empty env CommandScannedTag) then
     begin
       process_scanned env;
       main_loop env progress
@@ -2189,14 +2189,14 @@ let rec main_loop env (progress : prompt_state) =
   else if (env.env_idle_count > 0)
        && (env.env_error_code = 0)
        && not (Omake_build_util.command_list_is_empty env CommandReadyTag)
-  then 
+  then
     begin
       process_ready env;
       main_loop env progress
     end
   else if
-    env.env_idle_count == 0 || not (Omake_build_util.command_list_is_empty env CommandRunningTag) 
-  then 
+    env.env_idle_count == 0 || not (Omake_build_util.command_list_is_empty env CommandRunningTag)
+  then
     begin
     process_running env true;
     main_loop env progress
@@ -2220,13 +2220,13 @@ let make (env : Omake_build_type.t) =
  * Wait for notifications.
  *)
 let notify_wait (env : Omake_build_type.t) =
-  match env with 
+  match env with
     { env_exec = exec;
       env_venv = venv;
       _
-    } -> 
-    let db_node = 
-      Omake_env.venv_intern_cd venv PhonyProhibited 
+    } ->
+    let db_node =
+      Omake_env.venv_intern_cd venv PhonyProhibited
         (Omake_node.Dir.cwd ()) Omake_state.db_name in
     let rec loop found =
       if not found || Omake_exec.Exec.pending exec then
@@ -2304,7 +2304,7 @@ let build_phase (env : Omake_build_type.t) target : bool =
     Queue.iter (fun event -> ignore (do_invalidate_event env event)) env.env_pending_events;
     Queue.clear env.env_pending_events
   in
-  Lm_unix_util.finally () (function () -> 
+  Lm_unix_util.finally () (function () ->
       env.env_current_wl <- Omake_build_util.create_wl ();
       env.env_error_code <- 0;
       build_target env false target;
@@ -2322,7 +2322,7 @@ let rec build_targets (env : Omake_build_type.t) save_flag start_time parallel p
  * Summary management.
  *)
   let create_tmpfile (env : Omake_build_type.t) =
-    close_out @@ Pervasives.open_out_gen 
+    close_out @@ Pervasives.open_out_gen
       [Open_wronly; Open_binary; Open_creat; Open_trunc] 0o600 env.env_summary  in
   let () =
     try
@@ -2332,7 +2332,7 @@ let rec build_targets (env : Omake_build_type.t) save_flag start_time parallel p
       in
       let process_summary () =
         (* Print out the final summary *)
-        Lm_unix_util.with_file_fmt env.env_summary (fun buf -> 
+        Lm_unix_util.with_file_fmt env.env_summary (fun buf ->
           if env.env_error_code <> 0 then begin
             Omake_build_util.print_stats env "failed" start_time;
             Omake_build_util.print_failed_targets env buf;
@@ -2383,7 +2383,7 @@ let rec build_targets (env : Omake_build_type.t) save_flag start_time parallel p
     | Sys.Break
     | Failure _
     | Omake_value_type.Return _ as exn ->
-      Lm_unix_util.with_file_fmt env.env_summary (fun buf -> 
+      Lm_unix_util.with_file_fmt env.env_summary (fun buf ->
       Format.fprintf buf "%a@." Omake_exn_print.pp_print_exn exn);
       Omake_build_util.print_stats env (match exn with Sys.Break -> "stopped" | _ -> "failed") start_time;
       print_summary env ~unlink:false;
@@ -2461,7 +2461,7 @@ let build_core (env : Omake_build_type.t) dir start_time (options : Omake_option
   let venv : Omake_env.t = env.env_venv in
   let venv = Omake_env.venv_chdir_tmp venv dir in
   let targets = List.map (Omake_env.venv_intern venv PhonyOK) targets in
-  let () = 
+  let () =
     List.iter (fun s -> print_node_dependencies env (Omake_env.venv_intern venv PhonyOK s))
       options.show_dependencies in
   let options = env_options env in

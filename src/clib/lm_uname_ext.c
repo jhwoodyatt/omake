@@ -10,16 +10,16 @@
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation,
  * version 2.1 of the License.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- * 
+ *
  * Additional permission is given to link this library with the
  * OpenSSL project's "OpenSSL" library, and with the OCaml runtime,
  * and you may distribute the linked executables.  See the file
@@ -151,17 +151,17 @@ value lm_uname(value x)
 
     /* Copy data */
     result = alloc_tuple(5);
-    Field(result, 0) = Val_unit;
-    Field(result, 1) = Val_unit;
-    Field(result, 2) = Val_unit;
-    Field(result, 3) = Val_unit;
-    Field(result, 4) = Val_unit;
+    caml_initialize_field(result, 0, Val_unit);
+    caml_initialize_field(result, 1, Val_unit);
+    caml_initialize_field(result, 2, Val_unit);
+    caml_initialize_field(result, 3, Val_unit);
+    caml_initialize_field(result, 4, Val_unit);
 
-    Field(result, 0) = copy_string(name.sysname);
-    Field(result, 1) = copy_string(name.nodename);
-    Field(result, 2) = copy_string(name.release);
-    Field(result, 3) = copy_string(name.version);
-    Field(result, 4) = copy_string(name.machine);
+    caml_modify_field(result, 0, copy_string(name.sysname));
+    caml_modify_field(result, 1, copy_string(name.nodename));
+    caml_modify_field(result, 2, copy_string(name.release));
+    caml_modify_field(result, 3, copy_string(name.version));
+    caml_modify_field(result, 4, copy_string(name.machine));
 
     /* Return it */
     CAMLreturn(result);

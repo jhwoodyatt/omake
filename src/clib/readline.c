@@ -10,16 +10,16 @@
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; version 2
  * of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- * 
+ *
  * Additional permission is given to link this library with the
  * with the Objective Caml runtime, and to redistribute the
  * linked executables.  See the file LICENSE.OMake for more details.
@@ -123,7 +123,7 @@ static char **readline_completion(char *omake_completion, const char *text)
     CAMLparam0();
     CAMLlocal2(request, response);
     char *namep, **completions;
-    value *callbackp;
+    caml_root cb;
     int i, length;
 
 #ifdef WIN32
@@ -132,14 +132,14 @@ static char **readline_completion(char *omake_completion, const char *text)
 #endif
 
     /* Find the callback, abort if it doesn't exist */
-    callbackp = caml_named_value(omake_completion);
-    if(callbackp == 0 || *callbackp == 0)
+    cb = caml_named_root(omake_completion);
+    if(cb == 0 || caml_read_root(cb) == 0)
         CAMLreturnT(char **, 0);
 
     /* The callback returns an array of strings */
     request = caml_copy_string(text);
-    response = caml_callback(*callbackp, request);
-    
+    response = caml_callback(caml_read_root(cb), request);
+
     /* Copy the array of strings */
     length = Wosize_val(response);
     if(length == 0)
@@ -1317,7 +1317,7 @@ static void do_readline(ReadLine *readp, const char *promptp)
                 free(old_prompt);
                 readp->prompt_size = new_size;
             }
-        } 
+        }
         if (*promptp == INVIS_START)
             is_vis = 0;
         if (is_vis) {
@@ -1616,16 +1616,16 @@ value omake_rl_prompt_wrappers(value v_unit) {
         s1 = caml_copy_string(begin);
         s2 = caml_copy_string(end);
         buf = caml_alloc_tuple(2);
-        Field(buf, 0) = s1;
-        Field(buf, 1) = s2;
+        caml_initialize_field(buf, 0, s1);
+        caml_initialize_field(buf, 1, s2);
     }
 #else /* INVIS_START */
     {
         CAMLlocal1(emptystr);
         emptystr = caml_copy_string("");
         buf = caml_alloc_tuple(2);
-        Field(buf, 0) = emptystr;
-        Field(buf, 1) = emptystr;
+        caml_initialize_field(buf, 0, emptystr);
+        caml_initialize_field(buf, 1, emptystr);
     }
 #endif /* INVIS_START */
     CAMLreturn(buf);

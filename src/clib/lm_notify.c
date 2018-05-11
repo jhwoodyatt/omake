@@ -10,16 +10,16 @@
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation,
  * version 2.1 of the License.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- * 
+ *
  * Additional permission is given to link this library with the
  * OpenSSL project's "OpenSSL" library, and with the OCaml runtime,
  * and you may distribute the linked executables.  See the file
@@ -39,7 +39,7 @@
 
 #ifdef FAM_ENABLED
 
-#ifdef WIN32 
+#ifdef WIN32
 #include <windows.h>
 /* Disable some of the warnings */
 #pragma warning( disable : 4100 4189 4127 4702 4996 )
@@ -301,9 +301,9 @@ value om_notify_next_event(value v_fc)
 
     /* Allocate the tuple */
     v_tuple = alloc_tuple(3);
-    Field(v_tuple, 0) = Val_int(event.fr.reqnum);
-    Field(v_tuple, 1) = v_name;
-    Field(v_tuple, 2) = Val_int(code - 1);
+    caml_initialize_field(v_tuple, 0, Val_int(event.fr.reqnum));
+    caml_initialize_field(v_tuple, 1, v_name);
+    caml_initialize_field(v_tuple, 2, Val_int(code - 1));
     CAMLreturn(v_tuple);
 }
 
