@@ -94,6 +94,63 @@ let dir venv pos loc args =
        | _ ->
             raise (Omake_value_type.OmakeException (loc_pos loc pos, ArityMismatch (ArityExact 1, List.length args)))
 
+let get_temp_dir_name venv =
+  let envvar = Lm_symbol.add (match Sys.os_type with "Win32" -> "TEMP" | _ -> "TMPDIR") in
+    try Omake_env.venv_getenv venv envvar
+    with Not_found -> ""
+and default_temp_suffix = ".omake-temp"
+
+(*
+ * \begin{doc}
+ * \fun{tmpdir}
+ *
+ * \begin{verbatim}
+ *     $(tmpdir prefix) : Dir
+ *     $(tmpdir prefix, suffix) : Dir
+ *     $(tmpdir prefix, suffix, root_directory) : Dir
+ *         prefix : String
+ *         suffix : String
+ *         root_directory : Dir
+ * \end{verbatim}
+ *
+ * The \verb+tmpdir+~function returns the name of a fresh temporary
+ * directory in the temporary directory pointed to by the environment
+ * variable~TEMP (Win32) or TMPDIR (all other operating systems)
+ * unless explicitly given in \verb+root_directory+.  \verb+suffix+
+ * defaults to ".omake-temp".
+ *
+ * See also function~\verb+tmpfile+ for creating a single temporary
+ * file.
+ * \end{doc}
+ *)
+let tmpdir venv pos loc args : Omake_value_type.t =
+  let pos' = string_pos "tmpdir" pos in
+  let prefix, suffix, root_directory =
+    match args with
+    | [prefix] ->
+       Omake_value.string_of_value venv pos' prefix,
+       default_temp_suffix,
+       get_temp_dir_name venv
+    | [prefix; suffix] ->
+       Omake_value.string_of_value venv pos' prefix,
+       Omake_value.string_of_value venv pos' suffix,
+       get_temp_dir_name venv
+    | [prefix; suffix; root_directory'] ->
+       Omake_value.string_of_value venv pos' prefix,
+       Omake_value.string_of_value venv pos' suffix,
+       Omake_value.filename_of_value venv pos' root_directory'
+    | _ ->
+       raise (Omake_value_type.OmakeException (loc_pos loc pos',
+                                               ArityMismatch (ArityRange (1, 3), List.length args)))
+  in
+    let directory_name =
+      if root_directory = "" || root_directory = "." then
+        Lm_unix_util.temporary_directory prefix suffix
+      else
+        Lm_unix_util.temporary_directory ~root_directory prefix suffix
+    in
+      Omake_value_type.ValDir (Omake_env.venv_intern_dir venv directory_name)
+
 (*
  * \begin{doc}
  * \fun{tmpfile}
@@ -101,26 +158,60 @@ let dir venv pos loc args =
  * \begin{verbatim}
  *     $(tmpfile prefix) : File
  *     $(tmpfile prefix, suffix) : File
+ *     $(tmpfile prefix, suffix, temp_directory) : File
  *         prefix : String
  *         suffix : String
+ *         temp_directory : Dir
  * \end{verbatim}
  *
- * The \verb+tmpfile+ function returns the name of a fresh temporary file in
- * the temporary directory.
+ * The \verb+tmpfile+~function returns the name of a fresh temporary
+ * file in the temporary directory pointed to by the environment
+ * variable~TEMP (Win32) or TMPDIR (all other operating systems)
+ * unless explicitly given in \verb+root_directory+.  \verb+suffix+
+ * defaults to ".omake-temp".
+ *
+ * One typical usage of \verb+tmpfile+ is within a \verb+section+:
+ * \begin{verbatim}
+ *     section
+ *         setenv(TMPDIR, /dev/shm)    # migrate to fast device
+ *         test_file = $(tmpfile compilation-test, .c)
+ *         try
+ *             # Do something with test_file, which might fail.
+ *             # ...
+ *         finally
+ *             rm -f $(test_file)
+ * \end{verbatim}
+ *
+ * See also function~\verb+tmpdir+ for creating a temporary directory.
  * \end{doc}
  *)
 let tmpfile venv pos loc args : Omake_value_type.t =
-  let pos = string_pos "tmpfile" pos in
-  let prefix, suffix =
+  let pos' = string_pos "tmpfile" pos in
+  let prefix, suffix, temp_dir =
     match args with
     | [prefix] ->
-      Omake_value.string_of_value venv pos prefix, ".omake"
+       Omake_value.string_of_value venv pos' prefix,
+       default_temp_suffix,
+       get_temp_dir_name venv
     | [prefix; suffix] ->
-      Omake_value.string_of_value venv pos prefix, Omake_value.string_of_value venv pos suffix
+       Omake_value.string_of_value venv pos' prefix,
+       Omake_value.string_of_value venv pos' suffix,
+       get_temp_dir_name venv
+    | [prefix; suffix; temp_dir'] ->
+       Omake_value.string_of_value venv pos' prefix,
+       Omake_value.string_of_value venv pos' suffix,
+       Omake_value.filename_of_value venv pos' temp_dir'
     | _ ->
-      raise (Omake_value_type.OmakeException (loc_pos loc pos, ArityMismatch (ArityRange (1, 2), List.length args)))
+       raise (Omake_value_type.OmakeException (loc_pos loc pos',
+                                               ArityMismatch (ArityRange (1, 3), List.length args)))
   in
-  ValNode (Omake_env.venv_intern venv PhonyProhibited (Filename.temp_file prefix suffix))
+    let filename =
+      if temp_dir = "" || temp_dir = "." then
+        Filename.temp_file prefix suffix
+      else
+        Filename.temp_file ~temp_dir prefix suffix
+    in
+      Omake_value_type.ValNode (Omake_env.venv_intern venv PhonyProhibited filename)
 
 (*
  * Display something from a different directory.
@@ -2802,6 +2893,37 @@ let vmount venv pos loc args kargs =
 
 (*
  * \begin{doc}
+ * \fun{vmount-map}
+ *
+ * \begin{verbatim}
+ *     vmount-map() : Map
+ * \end{verbatim}
+ *
+ * Answer a Map object with the currently active virtual mounts.
+ * \end{doc}
+ *)
+
+let vmount_table venv pos loc args =
+  let pos = string_pos "vmount-map" pos in
+    if args = [] then
+      let table = List.fold_left
+                    (fun partial_table (dest, src) ->
+                      (* Note that we swap source and destination here
+                       * to generate a map from the source directories
+                       * to the destination ("build") directories. *)
+                      Omake_env.venv_map_add partial_table pos (ValDir src) (ValDir dest))
+                    Omake_env.venv_map_empty
+                    (Omake_env.venv_get_mount_listing venv)
+      in
+        Omake_value_type.ValObject (Omake_env.venv_add_field_internal
+                                      (Omake_env.venv_find_object_or_empty venv Omake_var.map_object_var)
+                                      Omake_symbol.map_sym
+                                      (ValMap table))
+    else
+      raise (Omake_value_type.OmakeException (loc_pos loc pos, ArityMismatch (ArityExact 0, List.length args)))
+
+(*
+ * \begin{doc}
  * \fun{add-project-directories}
  *
  * \begin{verbatim}
@@ -2868,7 +2990,8 @@ let () =
      true, "fullname",                fullname,                 ArityExact 1;
      true, "absname",                 absname,                  ArityExact 1;
      true, "suffix",                  suffix,                   ArityExact 1;
-     true, "tmpfile",                 tmpfile,                  ArityRange (1, 2);
+     true, "tmpdir",                  tmpdir,                   ArityRange (1, 3);
+     true, "tmpfile",                 tmpfile,                  ArityRange (1, 3);
      true, "file",                    file,                     ArityExact 1;
      true, "dir",                     dir,                      ArityExact 1;
      true, "which",                   which,                    ArityExact 1;
@@ -2916,7 +3039,8 @@ let () =
      true, "find-ocaml-targets-in-path-optional", find_ocaml_targets_in_path_optional, ArityExact 2;
 
      true, "add-project-directories", add_project_directories,  ArityExact 1;
-     true, "remove-project-directories", remove_project_directories,  ArityExact 1] in
+     true, "remove-project-directories", remove_project_directories,  ArityExact 1;
+     true, "vmount-map",              vmount_table,             ArityExact 0] in
   let builtin_kfuns =
     [true, "vmount",                  vmount,                   Omake_ir.ArityRange (2, 3);
     ]
